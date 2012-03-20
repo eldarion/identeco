@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xrds:XRDS
+    xmlns:xrds="xri://$xrds"
+    xmlns="xri://$xrd*($v*2.0)">
+  <XRD>
+
+    <Service priority="0">
+    {% for type_uri in type_uris %}
+      <Type>{{ type_uri|escape }}</Type>
+    {% endfor %}
+    {% for endpoint_uri in endpoint_uris %}
+      <URI>{{ endpoint_uri }}</URI>
+    {% endfor %}
+    {% if local_id %}
+      <LocalID>{{ local_id }}</LocalID>
+    {% endif %}
+    </Service>
+
+  </XRD>
+</xrds:XRDS>
