@@ -119,14 +119,14 @@ setup(
     long_description=read("README.rst"),
     author=AUTHOR,
     author_email=AUTHOR_EMAIL,
-    #license="BSD",  # @@@ Find Out License
+    license="BSD",
     url=URL,
     packages=find_packages(exclude=["tests.*", "tests"]),
     package_data=find_package_data(PACKAGE, only_in_packages=False),
     classifiers=[
         "Environment :: Web Environment",
         "Intended Audience :: Developers",
-        # "License :: OSI Approved :: BSD License",  # @@@ Find Out License
+        "License :: OSI Approved :: BSD License",
         "Operating System :: OS Independent",
         "Programming Language :: Python",
         "Framework :: Django",
