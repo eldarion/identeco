@@ -131,6 +131,6 @@ setup(
         "Programming Language :: Python",
         "Framework :: Django",
     ],
-    install_requies=["pytz", "python-openid"],
+    install_requires=["pytz", "python-openid"],
     zip_safe=False,
 )
