@@ -11,6 +11,7 @@ from django.utils.importlib import import_module
 from django.contrib.auth.decorators import login_required
 
 from openid.consumer.discover import OPENID_IDP_2_0_TYPE
+from openid.extensions import sreg
 from openid.server.server import Server
 from openid.server.server import EncodingError, ProtocolError
 from openid.yadis.constants import YADIS_CONTENT_TYPE
@@ -62,7 +63,18 @@ class OpenIDView(object):
         return response
 
 
-class DecideTrust(OpenIDView, FormView):
+class OpenIDUserData(object):
+    
+    def add_sreg(self, request, response, user):
+        sreg_req = sreg.SRegRequest.fromOpenIDRequest(request)
+        sreg_data = {
+            "nickname": user.username,
+        }
+        sreg_resp = sreg.SRegResponse.extractResponse(sreg_req, sreg_data)
+        response.addExtension(sreg_resp)
+
+
+class DecideTrust(OpenIDView, OpenIDUserData, FormView):
 
     form_class = TrustForm
     template_name = "identeco/trust/decide.html"
@@ -96,10 +108,13 @@ class DecideTrust(OpenIDView, FormView):
         #identity = self.request.build_absolute_uri(self.request.user.get_absolute_url())
         identity = self.request.build_absolute_uri(reverse("identeco_identity", kwargs={"username": self.request.user.username}))
 
+        openid_request = self.request.session.get("openid_request")
+
         if self.request.POST.get("allow"):
-            openid_response = self.request.session.get("openid_request").answer(True, identity=identity)
+            openid_response = openid_request.answer(True, identity=identity)
+            self.add_sreg(openid_request, openid_response, self.request.user)
         else:
-            openid_response = self.request.session.get("openid_request").answer(False, identity=identity)
+            openid_response = openid_request.answer(False, identity=identity)
 
         return self.render_openid_response(openid_response)
 
@@ -108,9 +123,12 @@ class DecideTrust(OpenIDView, FormView):
         identity = self.request.build_absolute_uri(reverse("identeco_identity", kwargs={"username": self.request.user.username}))
 
         try:
-            t = Trust.objects.get(user=self.request.user, trust_root=self.request.session.get("openid_request").trust_root)
+            openid_request = self.request.session.get("openid_request")
+            t = Trust.objects.get(user=self.request.user, trust_root=openid_request.trust_root)
             if t.always_trust:
-                return self.render_openid_response(self.request.session.get("openid_request").answer(True, identity=identity))
+                openid_response = openid_request.answer(True, identity=identity)
+                self.add_sreg(openid_request, openid_response, self.request.user)
+                return self.render_openid_response(openid_response)
         except Trust.DoesNotExist:
             pass
         return super(DecideTrust, self).get(request, *args, **kwargs)
@@ -120,7 +138,7 @@ class DecideTrust(OpenIDView, FormView):
         return super(DecideTrust, self).dispatch(*args, **kwargs)
 
 
-class Endpoint(OpenIDView, TemplateView):
+class Endpoint(OpenIDView, OpenIDUserData, TemplateView):
 
     template_names = {
         "error": "identeco/endpoint/error.html",
@@ -130,7 +148,6 @@ class Endpoint(OpenIDView, TemplateView):
     def handle_checkid(self):
         # @@@ Do Something with self.openid_request.idSelect()
         print "~>", self.openid_request.idSelect()
-
         if self.openid_request.immediate:
             if self.request.user.is_authorized():
                 try:
@@ -138,7 +155,9 @@ class Endpoint(OpenIDView, TemplateView):
                     if t.always_trust:
                         #identity = self.request.build_absolute_uri(self.request.user.get_absolute_url())
                         identity = self.request.build_absolute_uri(reverse("identeco_identity", kwargs={"username": self.request.user.username}))
-                        return self.render_openid_response(self.openid_request.answer(True, identity=identity))
+                        openid_response = self.openid_request.answer(True, identity=identity)
+                        self.add_sreg(self.openid_request, openid_response, self.request.user)
+                        return self.render_openid_response(openid_response)
                 except Trust.DoesNotExist:
                     pass
             return self.render_openid_response(self.openid_request.answer(False))
