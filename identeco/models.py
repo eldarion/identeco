@@ -15,7 +15,6 @@ class Nonce(models.Model):
 class Association(models.Model):
 
     type = models.CharField(max_length=64)
-
     server_url = models.CharField(max_length=2047)
     handle = models.CharField(max_length=255)
     secret = models.TextField()
