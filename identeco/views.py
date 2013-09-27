@@ -52,7 +52,7 @@ class OpenIDView(object):
 
 
 class OpenIDUserData(object):
-    
+
     def add_sreg(self, request, response, user):
         sreg_req = sreg.SRegRequest.fromOpenIDRequest(request)
         sreg_data = {
@@ -69,47 +69,36 @@ class DecideTrust(OpenIDView, OpenIDUserData, FormView):
 
     def get_initial(self):
         initial = super(DecideTrust, self).get_initial()
-
         initial.update({
             "trust_root": self.request.session.get("openid_request").trust_root,
         })
-
         return initial
 
     def get_form_kwargs(self):
         kwargs = super(DecideTrust, self).get_form_kwargs()
-
         kwargs.update({
             "openid_request": self.request.session.get("openid_request"),
         })
-
         return kwargs
 
     def form_valid(self, form):
         if form.cleaned_data["always_trust"]:
             Trust.objects.get_or_create(
-                            user=self.request.user,
-                            trust_root=form.cleaned_data["trust_root"],
-                            defaults={"always_trust": form.cleaned_data["always_trust"]}
-                        )
-
-        #identity = self.request.build_absolute_uri(self.request.user.get_absolute_url())
+                user=self.request.user,
+                trust_root=form.cleaned_data["trust_root"],
+                defaults={"always_trust": form.cleaned_data["always_trust"]}
+            )
         identity = self.request.build_absolute_uri(reverse("identeco_identity", kwargs={"username": self.request.user.username}))
-
         openid_request = self.request.session.get("openid_request")
-
         if self.request.POST.get("allow"):
             openid_response = openid_request.answer(True, identity=identity)
             self.add_sreg(openid_request, openid_response, self.request.user)
         else:
             openid_response = openid_request.answer(False, identity=identity)
-
         return self.render_openid_response(openid_response)
 
     def get(self, request, *args, **kwargs):
-        #identity = self.request.build_absolute_uri(self.request.user.get_absolute_url())
         identity = self.request.build_absolute_uri(reverse("identeco_identity", kwargs={"username": self.request.user.username}))
-
         try:
             openid_request = self.request.session.get("openid_request")
             t = Trust.objects.get(user=self.request.user, trust_root=openid_request.trust_root)
@@ -141,7 +130,6 @@ class Endpoint(OpenIDView, OpenIDUserData, TemplateView):
                 try:
                     t = Trust.objects.get(user=self.request.user, trust_root=self.openid_request.trust_root)
                     if t.always_trust:
-                        #identity = self.request.build_absolute_uri(self.request.user.get_absolute_url())
                         identity = self.request.build_absolute_uri(reverse("identeco_identity", kwargs={"username": self.request.user.username}))
                         openid_response = self.openid_request.answer(True, identity=identity)
                         self.add_sreg(self.openid_request, openid_response, self.request.user)
@@ -155,17 +143,14 @@ class Endpoint(OpenIDView, OpenIDUserData, TemplateView):
 
     def process_openid_request(self, data):
         self.server = self.get_openid_server()
-
         try:
             self.openid_request = self.server.decodeRequest(data)
         except ProtocolError as e:
             self.template_name = self.template_names["error"]
             return self.render_to_response({"error": str(e)})
-
         if self.openid_request is None:
             self.template_name = self.template_names["empty"]
             return self.render_to_response({})
-
         if self.openid_request.mode in ["checkid_immediate", "checkid_setup"]:
             return self.handle_checkid()
         else:
@@ -197,13 +182,11 @@ class XRDS(TemplateView):
 
     def get_context_data(self, **kwargs):
         ctx = super(XRDS, self).get_context_data(**kwargs)
-
         ctx.update({
             "type_uris": self.get_type_uris(),
             "endpoint_uris": self.get_endpoint_uris(),
             "local_id": None if not self.identity else self.request.build_absolute_uri(reverse("identeco_identity", kwargs={"username": self.kwargs["username"]})),
         })
-
         return ctx
 
     def get(self, request, *args, **kwargs):
@@ -216,9 +199,7 @@ class Identity(TemplateView):
 
     def get_context_data(self, **kwargs):
         ctx = super(Identity, self).get_context_data(**kwargs)
-
         ctx.update({
             "username": self.kwargs.get("username"),
         })
-
         return ctx
