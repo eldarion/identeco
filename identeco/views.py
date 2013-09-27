@@ -110,7 +110,7 @@ class DecideTrust(OpenIDView, OpenIDUserData, FormView):
             pass
         return super(DecideTrust, self).get(request, *args, **kwargs)
 
-    @method_decorator(load_path_attr(IDENTECO_LOGIN_REQUIRED))
+    @method_decorator(load_path_attr(LOGIN_REQUIRED))
     def dispatch(self, *args, **kwargs):
         return super(DecideTrust, self).dispatch(*args, **kwargs)
 
