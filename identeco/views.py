@@ -1,14 +1,10 @@
 from django.conf import settings
-from django.core.exceptions import ImproperlyConfigured
 from django.core.urlresolvers import reverse
 from django.http import HttpResponse, HttpResponseRedirect
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import TemplateView
 from django.views.generic.edit import FormView
 from django.utils.decorators import method_decorator
-from django.utils.importlib import import_module
-
-from django.contrib.auth.decorators import login_required
 
 from openid.consumer.discover import OPENID_IDP_2_0_TYPE
 from openid.extensions import sreg
@@ -18,25 +14,17 @@ from openid.yadis.constants import YADIS_CONTENT_TYPE
 
 from identeco.forms import TrustForm
 from identeco.models import Trust
+from identeco.utils import load_path_attr
+
+
+LOGIN_REQUIRED = getattr(settings, "IDENTECO_LOGIN_REQUIRED", "django.contrib.auth.decorators.login_required")
 
 
 class OpenIDView(object):
 
     def get_openid_store(self):
         store = getattr(settings, "IDENTECO_STORE", "identeco.store.DjangoORMStore")
-        module, attr = store.rsplit(".", 1)
-
-        try:
-            mod = import_module(module)
-        except ImportError as e:
-            raise ImproperlyConfigured('Error importing the Identeco store %s: "%s"' % (store, e))
-
-        try:
-            s = getattr(mod, attr)()
-        except AttributeError as e:
-            raise ImproperlyConfigured('Error import Identeco store %s: "%s"' % (store, e))
-
-        return s
+        return load_path_attr(store)
 
     def get_openid_endpoint(self):
         return self.request.build_absolute_uri(reverse("identeco_endpoint"))
@@ -133,7 +121,7 @@ class DecideTrust(OpenIDView, OpenIDUserData, FormView):
             pass
         return super(DecideTrust, self).get(request, *args, **kwargs)
 
-    @method_decorator(login_required)
+    @method_decorator(load_path_attr(IDENTECO_LOGIN_REQUIRED))
     def dispatch(self, *args, **kwargs):
         return super(DecideTrust, self).dispatch(*args, **kwargs)
 
