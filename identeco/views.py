@@ -35,19 +35,15 @@ class OpenIDView(object):
     def render_openid_response(self, openid_response):
         if not hasattr(self, "server"):
             self.server = self.get_openid_server()
-
         try:
             webresponse = self.server.encodeResponse(openid_response)
         except EncodingError as e:
             self.template_name = self.template_names["error"]
             return self.render_to_response({"error": e.response.encodeToKVForm()})
-
         response = HttpResponse(webresponse.body)
         response.status_code = webresponse.code
-
         for header, value in webresponse.headers.iteritems():
             response[header] = value
-
         return response
 
 
