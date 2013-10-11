@@ -24,7 +24,7 @@ class OpenIDView(object):
 
     def get_openid_store(self):
         store = getattr(settings, "IDENTECO_STORE", "identeco.store.DjangoORMStore")
-        return load_path_attr(store)
+        return load_path_attr(store)()
 
     def get_openid_endpoint(self):
         return self.request.build_absolute_uri(reverse("identeco_endpoint"))
