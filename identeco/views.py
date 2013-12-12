@@ -1,3 +1,5 @@
+import urlparse
+
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.http import HttpResponse, HttpResponseRedirect
@@ -95,16 +97,24 @@ class DecideTrust(OpenIDView, OpenIDUserData, FormView):
 
     def get(self, request, *args, **kwargs):
         identity = self.request.build_absolute_uri(reverse("identeco_identity", kwargs={"username": self.request.user.username}))
-        try:
-            openid_request = self.request.session.get("openid_request")
-            t = Trust.objects.get(user=self.request.user, trust_root=openid_request.trust_root)
-            if t.always_trust:
-                openid_response = openid_request.answer(True, identity=identity)
-                self.add_sreg(openid_request, openid_response, self.request.user)
-                return self.render_openid_response(openid_response)
-        except Trust.DoesNotExist:
-            pass
-        return super(DecideTrust, self).get(request, *args, **kwargs)
+        openid_request = self.request.session.get("openid_request")
+        url = urlparse.urlparse(openid_request.trust_root)
+        trusted_domains = getattr(settings, "IDENTECO_TRUSTED_DOMAINS", [])
+        if url.hostname in trusted_domains:
+            trusted = True
+        else:
+            try:
+                t = Trust.objects.get(user=self.request.user, trust_root=openid_request.trust_root)
+            except Trust.DoesNotExist:
+                trusted = False
+            else:
+                trusted = t.always_trust
+        if trusted:
+            openid_response = openid_request.answer(True, identity=identity)
+            self.add_sreg(openid_request, openid_response, self.request.user)
+            return self.render_openid_response(openid_response)
+        else:
+            return super(DecideTrust, self).get(request, *args, **kwargs)
 
     @method_decorator(load_path_attr(LOGIN_REQUIRED))
     def dispatch(self, *args, **kwargs):
