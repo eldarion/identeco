@@ -20,4 +20,3 @@ Contents
  changelog
  installation
  templatetags
-
