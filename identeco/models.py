@@ -30,7 +30,7 @@ class Trust(models.Model):
 
     user = models.ForeignKey("auth.User")
     trust_root = models.CharField(max_length=2047)
-    always_trust = models.BooleanField()
+    always_trust = models.BooleanField(default=False)
 
     class Meta:
         unique_together = ("user", "trust_root")
